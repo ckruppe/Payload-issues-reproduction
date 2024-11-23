@@ -39,7 +39,7 @@
     "test:cypress:integration": "cross-env NODE_ENV=test yarn cypress run",
     "test:merge": "yarn run test:cypress:integration && yarn run test:cypress:ct && yarn nfqReport",
     "test": "yarn run test:cypress:integration && yarn run test:cypress:ct",
-    "generate:types": "nfq-generate-types -f \"@app/features\" -j \"@nfq/feature-flags/jsx\" -i \"WithFeature\" -x \"WithoutFeature\" -e stage",
+    "generate:types": "cross-env PAYLOAD_CONFIG_PATH=src/server/payload/payload.config.ts payload generate:types && nfq-generate-types -f \"@app/features\" -j \"@nfq/feature-flags/jsx\" -i \"WithFeature\" -x \"WithoutFeature\" -e stage",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "cross-env NODE_ENV=development FEATURE_ENV=stage storybook build",
     "postinstall": "patch-package"

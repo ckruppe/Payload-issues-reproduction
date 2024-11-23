@@ -12,6 +12,7 @@ export interface Config {
   };
   collections: {
     'admin-users': AdminUser;
+    stores: Store;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -19,6 +20,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     'admin-users': AdminUsersSelect<false> | AdminUsersSelect<true>;
+    stores: StoresSelect<false> | StoresSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -74,14 +76,64 @@ export interface AdminUser {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stores".
+ */
+export interface Store {
+  id: string;
+  name: string;
+  storeType: string;
+  address: StoreAddress;
+  referringMedia?: {
+    funnel?: ('Awareness' | 'NoiseCancelling' | 'AwareMode' | 'SoundQuality' | 'Sale') | null;
+    motive?:
+      | (
+          | 'Berlin'
+          | 'Muenchen'
+          | 'Stuttgart'
+          | 'Dortmund'
+          | 'Duesseldorf'
+          | 'Koeln'
+          | 'Hamburg'
+          | 'Frankfurt'
+          | 'Generisch'
+        )
+      | null;
+    format?: ('fireplace' | 'sitebar' | 'contentad' | 'interstitial') | null;
+    page?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "StoreAddress".
+ */
+export interface StoreAddress {
+  street: string;
+  streetNumber?: string | null;
+  city: string;
+  zip: string;
+  /**
+   * @minItems 2
+   * @maxItems 2
+   */
+  coordinates: [number, number];
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
   id: string;
-  document?: {
-    relationTo: 'admin-users';
-    value: string | AdminUser;
-  } | null;
+  document?:
+    | ({
+        relationTo: 'admin-users';
+        value: string | AdminUser;
+      } | null)
+    | ({
+        relationTo: 'stores';
+        value: string | Store;
+      } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'admin-users';
@@ -138,6 +190,33 @@ export interface AdminUsersSelect<T extends boolean = true> {
   hash?: T;
   loginAttempts?: T;
   lockUntil?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "stores_select".
+ */
+export interface StoresSelect<T extends boolean = true> {
+  name?: T;
+  storeType?: T;
+  address?:
+    | T
+    | {
+        street?: T;
+        streetNumber?: T;
+        city?: T;
+        zip?: T;
+        coordinates?: T;
+      };
+  referringMedia?:
+    | T
+    | {
+        funnel?: T;
+        motive?: T;
+        format?: T;
+        page?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

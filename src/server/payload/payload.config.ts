@@ -9,7 +9,7 @@ import {buildConfig} from 'payload';
 import {de} from 'payload/i18n/de';
 import sharp from 'sharp';
 
-import {AdminUsers} from 'Payload/collections';
+import {AdminUsers, Stores} from 'Payload/collections';
 import {generateSeoTitle} from 'Payload/hooks/generateSeoTitle';
 import {generateSeoUrl} from 'Payload/hooks/generateSeoUrl';
 
@@ -54,7 +54,7 @@ export default buildConfig({
         },
         user: AdminUsers.slug
     },
-    collections: [AdminUsers],
+    collections: [AdminUsers, Stores],
     cors: [process.env.NEXT_PUBLIC_BASE_URL],
     csrf: [process.env.NEXT_PUBLIC_BASE_URL],
     db: mongooseAdapter({url: process.env.MONGODB_URI}),
