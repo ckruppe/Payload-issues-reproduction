@@ -6,21 +6,83 @@
  * and re-run `payload generate:types` to regenerate this file.
  */
 
+/**
+ * Supported timezones in IANA format.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supportedTimezones".
+ */
+export type SupportedTimezones =
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
+
 export interface Config {
   auth: {
     'admin-users': AdminUserAuthOperations;
   };
+  blocks: {};
   collections: {
     'admin-users': AdminUser;
     stores: Store;
+    folders: FolderInterface;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
-  collectionsJoins: {};
+  collectionsJoins: {
+    folders: {
+      documentsAndFolders: 'folders' | 'stores';
+    };
+  };
   collectionsSelect: {
     'admin-users': AdminUsersSelect<false> | AdminUsersSelect<true>;
     stores: StoresSelect<false> | StoresSelect<true>;
+    folders: FoldersSelect<false> | FoldersSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -58,6 +120,8 @@ export interface AdminUserAuthOperations {
   };
 }
 /**
+ * Eine Liste aller Admin-User.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "admin-users".
  */
@@ -72,52 +136,53 @@ export interface AdminUser {
   hash?: string | null;
   loginAttempts?: number | null;
   lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
   password?: string | null;
 }
 /**
+ * Eine Liste aller Stores für den Storefinder.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "stores".
  */
 export interface Store {
   id: string;
-  name: string;
-  storeType: string;
-  address: StoreAddress;
-  referringMedia?: {
-    funnel?: ('Awareness' | 'NoiseCancelling' | 'AwareMode' | 'SoundQuality' | 'Sale') | null;
-    motive?:
-      | (
-          | 'Berlin'
-          | 'Muenchen'
-          | 'Stuttgart'
-          | 'Dortmund'
-          | 'Duesseldorf'
-          | 'Koeln'
-          | 'Hamburg'
-          | 'Frankfurt'
-          | 'Generisch'
-        )
-      | null;
-    format?: ('fireplace' | 'sitebar' | 'contentad' | 'interstitial') | null;
-    page?: string | null;
-  };
+  name?: string | null;
+  folder?: (string | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "StoreAddress".
+ * via the `definition` "folders".
  */
-export interface StoreAddress {
-  street: string;
-  streetNumber?: string | null;
-  city: string;
-  zip: string;
-  /**
-   * @minItems 2
-   * @maxItems 2
-   */
-  coordinates: [number, number];
+export interface FolderInterface {
+  id: string;
+  name: string;
+  folder?: (string | null) | FolderInterface;
+  documentsAndFolders?: {
+    docs?: (
+      | {
+          relationTo?: 'folders';
+          value: string | FolderInterface;
+        }
+      | {
+          relationTo?: 'stores';
+          value: string | Store;
+        }
+    )[];
+    hasNextPage?: boolean;
+    totalDocs?: number;
+  };
+  folderType?: 'stores'[] | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -133,6 +198,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'stores';
         value: string | Store;
+      } | null)
+    | ({
+        relationTo: 'folders';
+        value: string | FolderInterface;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -190,6 +259,13 @@ export interface AdminUsersSelect<T extends boolean = true> {
   hash?: T;
   loginAttempts?: T;
   lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -197,24 +273,19 @@ export interface AdminUsersSelect<T extends boolean = true> {
  */
 export interface StoresSelect<T extends boolean = true> {
   name?: T;
-  storeType?: T;
-  address?:
-    | T
-    | {
-        street?: T;
-        streetNumber?: T;
-        city?: T;
-        zip?: T;
-        coordinates?: T;
-      };
-  referringMedia?:
-    | T
-    | {
-        funnel?: T;
-        motive?: T;
-        format?: T;
-        page?: T;
-      };
+  folder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "folders_select".
+ */
+export interface FoldersSelect<T extends boolean = true> {
+  name?: T;
+  folder?: T;
+  documentsAndFolders?: T;
+  folderType?: T;
   updatedAt?: T;
   createdAt?: T;
 }

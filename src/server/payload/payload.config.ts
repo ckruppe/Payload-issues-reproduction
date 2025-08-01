@@ -1,7 +1,6 @@
 import path, {resolve} from 'path';
 import {fileURLToPath} from 'url';
 
-import {AUTO_LOGIN} from '@app/features';
 import {mongooseAdapter} from '@payloadcms/db-mongodb';
 import {seoPlugin} from '@payloadcms/plugin-seo';
 import {BoldFeature, ItalicFeature, lexicalEditor, UnderlineFeature} from '@payloadcms/richtext-lexical';
@@ -9,6 +8,8 @@ import {buildConfig} from 'payload';
 import {de} from 'payload/i18n/de';
 import sharp from 'sharp';
 
+import {authenticated} from 'Payload/access/authenticated';
+import {exampleAccess} from 'Payload/access/exampleAccess';
 import {AdminUsers, Stores} from 'Payload/collections';
 import {generateSeoTitle} from 'Payload/hooks/generateSeoTitle';
 import {generateSeoUrl} from 'Payload/hooks/generateSeoUrl';
@@ -18,13 +19,6 @@ const dirname = path.dirname(filename);
 
 export default buildConfig({
     admin: {
-        ...(AUTO_LOGIN ? {
-            autoLogin: {
-                email: process.env.PAYLOAD_DEV_USER,
-                password: process.env.PAYLOAD_DEV_PASS,
-                prefillOnly: false
-            }
-        } : {}),
         importMap: {baseDir: resolve(dirname, '../../client/ui/components/admin')},
         livePreview: {
             breakpoints: [
@@ -79,6 +73,23 @@ export default buildConfig({
             ];
         }
     }),
+    folders: {
+        browseByFolder: false,
+        collectionOverrides: [({collection}) => ({
+            ...collection,
+            access: {
+                ...collection.access,
+                create: authenticated,
+                delete: exampleAccess,
+                read: authenticated,
+                update: authenticated
+            }
+        })],
+        collectionSpecific: true,
+        debug: false,
+        fieldName: 'folder',
+        slug: 'folders'
+    },
     i18n: {supportedLanguages: {de}},
     plugins: [
         seoPlugin({
@@ -88,36 +99,5 @@ export default buildConfig({
     ],
     secret: process.env.PAYLOAD_SECRET,
     sharp,
-    typescript: {outputFile: resolve(dirname, '../../../types/payload-types.ts')},
-    /**
-     * The `onInit` function is responsible for initializing the application by checking for existing admin users.
-     * If no admin users exist in the system, it creates a new admin user with credentials defined in the environment variables.
-     * This is typically used during the setup or initial launch of the application to ensure at least one admin user is present.
-     *
-     * @param payload The payload object which provides methods to interact with the database (such as `find` and `create`).
-     * @returns A promise that resolves once the initialization process is completed.
-     *
-     * @example
-     * ```tsx
-     * await onInit(payload);
-     * ```
-     */
-    async onInit(payload) {
-        const existingUsers = await payload.find({
-            // @ts-expect-error
-            collection: AdminUsers.slug,
-            limit: 1
-        });
-
-        if (existingUsers.docs.length === 0) {
-            await payload.create({
-                // @ts-expect-error
-                collection: AdminUsers.slug,
-                data: {
-                    email: process.env.PAYLOAD_DEV_USER,
-                    password: process.env.PAYLOAD_DEV_PASS
-                }
-            });
-        }
-    }
+    typescript: {outputFile: resolve(dirname, '../../../types/payload-types.ts')}
 });

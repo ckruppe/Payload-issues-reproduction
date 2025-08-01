@@ -14,7 +14,7 @@ const corsDev = [
     'img-src \'self\' data: https: blob:',
     'media-src \'self\' data: https: blob:',
     'object-src \'none\'',
-    'script-src \'self\' \'unsafe-eval\' \'unsafe-inline\' blob:',
+    'script-src \'self\' \'unsafe-eval\' \'unsafe-inline\' blob: https://cdn.jsdelivr.net/',
     'script-src-attr \'none\'',
     'style-src \'self\' https: \'unsafe-inline\'',
     'block-all-mixed-content'

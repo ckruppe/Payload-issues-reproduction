@@ -8,7 +8,6 @@ import type {
     NextPageContext
 } from 'next';
 import type {AppProps as NextAppProps} from 'next/app';
-import type {NextRouter} from 'next/router';
 
 type NextComponentWithLayout = NextComponentType<NextPageContext, any, any> & Partial<NextPageWithLayout>;
 type NextPageWithLayout<T = any> = NextPage<T> & Layout<T>;
@@ -24,10 +23,23 @@ export interface Layout<T> {
     getLayoutKey?: GetLayoutKey;
 }
 
-export type GetLayout<T> = (router: NextRouter, pageProps: T, PageComponent: NextComponentWithLayout) => ReactNode;
+export type GetLayout<T> = (route: string, pageProps: T, PageComponent: NextComponentWithLayout) => ReactNode;
 export type GetLayoutKey = () => string;
 
 export type WithOptionalChildren<T = object> = T & {children?: ReactNode};
 export type WithMultipleChildren<T = object> = T & {children: ReactElement[]};
 export type WithChildren<T = object> = T & {children: ReactNode};
 export type WithChild<T = object> = T & {children: ReactElement};
+export type WithOnlyTextChild<T = object> = T & {children: (number | string)[] | number[] | string[] | number | string};
+
+type Sizes = `${number}gb` | `${number}kb` | `${number}mb`;
+export interface NextApiRouteConfig {
+    api: {
+        bodyParser: false | {
+            sizeLimit: Sizes;
+        };
+        externalResolver?: boolean;
+        maxDuration?: number;
+        responseLimit?: Sizes | boolean;
+    };
+}

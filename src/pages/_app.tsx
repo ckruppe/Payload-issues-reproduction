@@ -1,19 +1,23 @@
 /* eslint-disable react/jsx-filename-extension */
 import type {ReactNode} from 'react';
-import React, {Component} from 'react';
+import {Component} from 'react';
 
+import {CacheProvider, Global, ThemeProvider} from '@emotion/react';
+import styled from '@emotion/styled';
 import {preloadFonts} from '@nfq/next-fonts';
-import {ScreenSizeProvider} from '@nfq/react-grid';
-import {AnimatePresence, LazyMotion, m as motion} from 'framer-motion';
+import {ScreenBadge, ScreenSizeProvider} from '@nfq/react-grid';
+import {AnimatePresence, LazyMotion} from 'motion/react';
+import * as motion from 'motion/react-m';
 import dynamic from 'next/dynamic';
 import Head from 'next/head';
-import styled, {ThemeProvider} from 'styled-components';
 
 import {LayoutTransition} from 'UI/animations/layout';
 
-import {fontDefinitions, GlobalStyle, theme} from 'UI/utils/globalStyles';
+import {createEmotionCache} from 'Application/configs/emotionCache';
+import {fontDefinitions, globals, theme} from 'UI/utils/globalStyles';
 
-import type {FeatureBundle} from 'framer-motion';
+import type {EmotionCache} from '@emotion/cache';
+import type {FeatureBundle} from 'motion/react';
 import type {AppProps} from 'types/global';
 
 import 'Fonts/fonts';
@@ -58,12 +62,14 @@ const loadMotionFeatures = async (): Promise<FeatureBundle> => {
     return module.default;
 };
 
+const clientSideEmotionCache = createEmotionCache();
+
 /**
  * The `App` class extends the `Component` class and serves as the main application component.
  * It is responsible for rendering the overall layout and structure of the application, including theming, global styles, and various providers.
  * This class is crucial for managing the overall appearance and behavior of the application and for wrapping the application with necessary context providers.
  */
-class App extends Component<AppProps<object>> {
+class App extends Component<AppProps<object> & {emotionCache?: EmotionCache}> {
     /**
      * `getLayoutKey` is a method designed to retrieve the layout key from the PageComponent.
      * It is responsible for determining which layout should be used when rendering the application.
@@ -96,9 +102,10 @@ class App extends Component<AppProps<object>> {
      */
     chooseLayout(): ReactNode {
         const {Component: PageComponent, pageProps, router} = this.props;
+        const route = router.asPath.split('?')[0].split('#')[0];
 
         if (PageComponent.getLayout) {
-            return PageComponent.getLayout(router, pageProps, PageComponent);
+            return PageComponent.getLayout(route, pageProps, PageComponent);
         }
 
         // eslint-disable-next-line react/jsx-props-no-spreading
@@ -113,31 +120,36 @@ class App extends Component<AppProps<object>> {
      * @returns A ReactNode representing the overall structure and elements of the application.
      */
     render(): ReactNode {
+        const {emotionCache = clientSideEmotionCache} = this.props;
+
         return (
-            <ThemeProvider theme={theme}>
-                <Head>
-                    <meta content="initial-scale=1.0, width=device-width" name="viewport" />
-                    <link href="/favicon.ico" rel="icon" type="image/x-icon" />
-                    {preloadFonts(fontDefinitions)}
-                </Head>
-                <GlobalStyle />
-                <AxeCoreHelper />
-                <ScreenSizeProvider>
-                    <LazyMotion features={loadMotionFeatures} strict>
-                        <AnimatePresence initial={false} mode="wait">
-                            <AnimationWrapper
-                                key={this.getLayoutKey()}
-                                animate="enter"
-                                exit="exit"
-                                initial="initial"
-                                variants={LayoutTransition}
-                            >
-                                {this.chooseLayout()}
-                            </AnimationWrapper>
-                        </AnimatePresence>
-                    </LazyMotion>
-                </ScreenSizeProvider>
-            </ThemeProvider>
+            <CacheProvider value={emotionCache}>
+                <ThemeProvider theme={theme}>
+                    <Head>
+                        <meta content="initial-scale=1.0, width=device-width" name="viewport" />
+                        <link href="/favicon.ico" rel="icon" type="image/x-icon" />
+                        {preloadFonts(fontDefinitions)}
+                    </Head>
+                    <Global styles={globals} />
+                    <AxeCoreHelper />
+                    <ScreenSizeProvider>
+                        <LazyMotion features={loadMotionFeatures} strict>
+                            <AnimatePresence mode="wait">
+                                <AnimationWrapper
+                                    key={this.getLayoutKey()}
+                                    animate="enter"
+                                    exit="exit"
+                                    initial="initial"
+                                    variants={LayoutTransition}
+                                >
+                                    {this.chooseLayout()}
+                                </AnimationWrapper>
+                            </AnimatePresence>
+                        </LazyMotion>
+                        <ScreenBadge />
+                    </ScreenSizeProvider>
+                </ThemeProvider>
+            </CacheProvider>
         );
     }
 }
@@ -145,5 +157,9 @@ class App extends Component<AppProps<object>> {
 export default App;
 
 const AnimationWrapper = styled(motion.div)`
+    display: flex;
+    flex: 1 2 auto;
+    flex-direction: column;
+    min-height: 100%;
     width: 100%;
 `;

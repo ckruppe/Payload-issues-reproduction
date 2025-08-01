@@ -1,9 +1,11 @@
 import type {ReactElement} from 'react';
 
+import createEmotionServer from '@emotion/server/create-instance';
 import Document, {Head, Html, Main, NextScript} from 'next/document';
-import {ServerStyleSheet} from 'styled-components';
 
-import type {DocumentContext, DocumentInitialProps} from 'next/document';
+import {createEmotionCache} from 'Application/configs/emotionCache';
+
+import type {DocumentContext} from 'next/document';
 
 /**
  * The `AppDocument` class extends the `Document` class and is used to augment the application's HTML document.
@@ -12,40 +14,44 @@ import type {DocumentContext, DocumentInitialProps} from 'next/document';
  */
 export default class AppDocument extends Document {
     /**
-     * `getInitialProps` is a static asynchronous method designed to compute and return the initial properties for the document.
-     * It is responsible for rendering the application on the server side and collecting styles during the initial app load.
-     * This method is crucial for optimizing the rendering process and ensuring that the application is styled correctly from the start.
+     * Overrides the default `getInitialProps` method to support Emotion’s server-side rendering (SSR) in a Next.js application.
+     * This method captures the rendered HTML from the `ctx.renderPage()` call and extracts the critical CSS using Emotion’s
+     * `renderStaticStyles` function. This ensures that only the styles used during the SSR pass are included in the final HTML,
+     * avoiding unstyled flashes and improving performance.
+     * The extracted CSS is then injected into the document’s `<head>` using a `<style>` tag with a `data-emotion` attribute
+     * to support Emotion’s hydration on the client side. It also preserves any existing styles by including `initialProps.styles`.
      *
-     * @param ctx The DocumentContext object representing the context in which the document is rendered.
-     * @returns A promise resolving to an object containing the initial properties for the document, including the collected styles.
-     *
-     * @example
-     * ```tsx
-     * const initialProps = await AppDocument.getInitialProps(ctx);
-     * ```
+     * @param ctx The `DocumentContext` provided by Next.js, containing methods and properties for customizing the document rendering process.
+     * @returns An object containing the initial document props along with the injected Emotion styles.
      */
-    static async getInitialProps(ctx: DocumentContext): Promise<DocumentInitialProps> {
-        const sheet = new ServerStyleSheet();
+    static async getInitialProps(ctx: DocumentContext) {
         const originalRenderPage = ctx.renderPage;
+        const cache = createEmotionCache();
+        const {extractCritical} = createEmotionServer(cache);
 
-        try {
-            ctx.renderPage = async () => (
+        ctx.renderPage = async () => originalRenderPage({
+            enhanceApp: App => function EnhanceApp(props) {
+                // @ts-expect-error
                 // eslint-disable-next-line react/jsx-props-no-spreading
-                originalRenderPage({enhanceApp: App => props => sheet.collectStyles(<App {...props} />)})
-            );
+                return <App emotionCache={cache} {...props} />;
+            }
+        });
+        const initialProps = await Document.getInitialProps(ctx);
+        const {css, ids} = extractCritical(initialProps.html);
 
-            const initialProps = await Document.getInitialProps(ctx);
-
-            return {
-                ...initialProps,
-                styles: [
-                    initialProps.styles,
-                    sheet.getStyleElement()
-                ]
-            };
-        } finally {
-            sheet.seal();
-        }
+        return {
+            ...initialProps,
+            styles: (
+                <>
+                    {initialProps.styles}
+                    <style
+                        // eslint-disable-next-line react/no-danger
+                        dangerouslySetInnerHTML={{__html: css}}
+                        data-emotion={`next ${ids.join(' ')}`}
+                    />
+                </>
+            )
+        };
     }
 
     /**
