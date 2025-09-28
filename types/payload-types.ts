@@ -154,6 +154,21 @@ export interface AdminUser {
 export interface Store {
   id: string;
   name?: string | null;
+  text: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
   folder?: (string | null) | FolderInterface;
   updatedAt: string;
   createdAt: string;
@@ -273,6 +288,7 @@ export interface AdminUsersSelect<T extends boolean = true> {
  */
 export interface StoresSelect<T extends boolean = true> {
   name?: T;
+  text?: T;
   folder?: T;
   updatedAt?: T;
   createdAt?: T;
